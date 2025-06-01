@@ -1,1 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Earth-Moon WebXR Scene</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #ar-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+    #ar-button {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.141.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="ar-container"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
 
+    // Initialize renderer with WebXR support
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.getElementById('ar-container').appendChild(renderer.domElement);
+
+    // Add AR button
+    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+    // Scene and camera
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+    // Texture Loader
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
+
+    // Earth
+    const earthGeometry = new THREE.SphereGeometry(0.6, 32, 64);
+    let earth;
+    textureLoader.load(
+      '../week05/2k_earth_daymap.jpg',
+      (texture) => {
+        texture.colorSpace = 'srgb';
+        const earthMaterial = new THREE.MeshStandardMaterial({ map: texture });
+        earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        earth.position.set(0, 0, -1.5); // Position in front of camera
+        scene.add(earth);
+        console.log('Earth texture loaded successfully');
+      },
+      undefined,
+      (error) => {
+        console.error('Error loading Earth texture:', error);
+      }
+    );
+
+    // Moon
+    const moonGeometry = new THREE.SphereGeometry(0.1632, 32, 64);
+    let moonOrbit;
+    textureLoader.load(
+      '../week05/2k_moon.jpg',
+      (texture) => {
+        texture.colorSpace = 'srgb';
+        const moonMaterial = new THREE.MeshStandardMaterial({ map: texture });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        moonOrbit = new THREE.Group();
+        moonOrbit.position.set(0, 0, -1.5);
+        moon.position.set(3.6, 0, 0);
+        moonOrbit.add(moon);
+        scene.add(moonOrbit);
+        console.log('Moon texture loaded successfully');
+      },
+      undefined,
+      (error) => {
+        console.error('Error loading Moon texture:', error);
+      }
+    );
+
+    // Lighting
+    const pointLight = new THREE.PointLight(0xffffff, 1.5, 100);
+    pointLight.position.set(2, 0, 0);
+    scene.add(pointLight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    // Animation
+    const clock = new THREE.Clock();
+    const animate = () => {
+      const delta = clock.getDelta();
+      if (earth) earth.rotation.y += (2 * Math.PI / 5.08) * delta;
+      if (moonOrbit) moonOrbit.rotation.y += (2 * Math.PI / 142.30588) * delta;
+      renderer.render(scene, camera);
+    };
+
+    // WebXR render loop
+    renderer.setAnimationLoop(() => {
+      animate();
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
