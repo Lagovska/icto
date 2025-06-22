@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Earth-Moon AR with Three.js and MindAR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #ar-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+  </style>
+  <script type="importmap">
+   {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.141.0/examples/jsm/",
+        "mind-ar": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="ar-container"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { MindARThree } from 'mind-ar';
+
+    const mindarThree = new MindARThree({
+      container: document.getElementById('ar-container'),
+      imageTargetSrc: '../assets/pattern-letterA.mind',
+    });
+
+    const { renderer, scene, camera } = mindarThree;
+    const anchor = mindarThree.addAnchor(0);
+
+    const textureLoader = new THREE.TextureLoader();
+    let earth, moon, moonOrbit;
+
+    // Земля
+    const earthGeometry = new THREE.SphereGeometry(0.6, 64, 32);
+    const earthTexture = textureLoader.load('../week05/2k_earth_daymap.jpg');
+    const earthMaterial = new THREE.MeshStandardMaterial({ map: earthTexture });
+    earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    earth.position.set(0, 0, 0);
+
+    // Місяць
+    const moonGeometry = new THREE.SphereGeometry(0.1632, 64, 32);
+    const moonTexture = textureLoader.load('../week05/2k_moon.jpg');
+    const moonMaterial = new THREE.MeshStandardMaterial({ map: moonTexture });
+    moon = new THREE.Mesh(moonGeometry, moonMaterial);
+    moon.position.set(3.6, 0, 0);
+
+    // Група орбіти Місяця (щоб крутити навколо Землі)
+    moonOrbit = new THREE.Group();
+    moonOrbit.add(moon);
+
+    // Освітлення
+    const pointLight = new THREE.PointLight(0xffffff, 1.5);
+    pointLight.position.set(2, 2, 2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    anchor.group.add(pointLight);
+    scene.add(ambientLight);
+
+    // Додаємо все до якоря
+    anchor.group.add(earth);
+    anchor.group.add(moonOrbit);
+
+    // Анімація
+    const clock = new THREE.Clock();
+    renderer.setAnimationLoop(() => {
+      const delta = clock.getDelta();
+
+      // Обертання Землі
+      earth.rotation.y += delta * (Math.PI * 2 / 5); // 1 оберт за 5 секунд
+
+      // Обертання Місяця навколо своєї осі
+      moon.rotation.y += delta * (Math.PI * 2 / 5);
+
+      // Орбітальний рух Місяця
+      moonOrbit.rotation.y += delta * (Math.PI * 2 / 10); // 1 орбіта за 10 секунд
+
+      renderer.render(scene, camera);
+    });
+
+    await mindarThree.start();
+    console.log("MindAR started");
+  </script>
+</body>
+</html>
